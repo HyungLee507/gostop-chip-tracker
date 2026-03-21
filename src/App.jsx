@@ -21,11 +21,28 @@ function formatTime(value) {
   });
 }
 
+function loadInitialState() {
+  try {
+    const saved = window.localStorage.getItem(STORAGE_KEY);
+    if (!saved) return createInitialState();
+
+    const parsed = JSON.parse(saved);
+    if (!parsed || !Array.isArray(parsed.players) || !Array.isArray(parsed.transfers)) {
+      return createInitialState();
+    }
+
+    return {
+      players: parsed.players.length >= 3 ? parsed.players : createInitialState().players,
+      initialChips: Number(parsed.initialChips) > 0 ? Number(parsed.initialChips) : DEFAULT_CHIPS,
+      transfers: parsed.transfers,
+    };
+  } catch {
+    return createInitialState();
+  }
+}
+
 export default function App() {
-  const [state, setState] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved) : createInitialState();
-  });
+  const [state, setState] = useState(loadInitialState);
   const [newPlayer, setNewPlayer] = useState('');
   const [transferForm, setTransferForm] = useState({
     from: '1',
@@ -35,7 +52,11 @@ export default function App() {
   });
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch {
+      // ignore storage failures and keep the UI usable
+    }
   }, [state]);
 
   const balances = useMemo(() => {
