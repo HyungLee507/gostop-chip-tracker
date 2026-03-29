@@ -744,6 +744,11 @@ p {
 @media (max-width: 600px) {
   .app {
     padding: 12px;
+    height: auto;
+    min-height: 100dvh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
   }
 
   .grid-two,
