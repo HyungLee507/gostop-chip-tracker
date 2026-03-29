@@ -742,13 +742,28 @@ p {
 
 /* Mobile */
 @media (max-width: 600px) {
+  html,
+  body,
+  #root {
+    height: auto;
+    min-height: 100%;
+    overflow-y: auto;
+  }
+
   .app {
     padding: 12px;
+    min-height: 100vh;
     height: auto;
     min-height: 100dvh;
     overflow-x: hidden;
     overflow-y: auto;
     padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .game-layout,
+  .game-main,
+  .game-sidebar-col {
+    height: auto;
   }
 
   .grid-two,
