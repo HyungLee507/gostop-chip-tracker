@@ -48,7 +48,7 @@ function normalizePlayers(players) {
     })
     .slice(0, 4);
 
-  if (normalized.length < 3) {
+  if (normalized.length < 2) {
     return createInitialState().players;
   }
 
@@ -81,6 +81,7 @@ function normalizeTransfers(transfers, playerIds) {
         from,
         to,
         amount,
+        reason: typeof transfer?.reason === 'string' ? transfer.reason : '',
         createdAt: Number(transfer?.createdAt) || Date.now(),
       };
     })
@@ -158,6 +159,7 @@ export default function App() {
   const [selection, setSelection] = useState({ from: null, to: null });
   const [amountInput, setAmountInput] = useState('');
   const [showSettlement, setShowSettlement] = useState(false);
+  const [specialConfirm, setSpecialConfirm] = useState(null);
 
   useEffect(() => {
     try {
@@ -226,7 +228,7 @@ export default function App() {
   }
 
   function removePlayer(id) {
-    if (state.players.length <= 3) return;
+    if (state.players.length <= 2) return;
 
     setState((prev) => ({
       ...prev,
@@ -263,6 +265,7 @@ export default function App() {
           from: selection.from,
           to: selection.to,
           amount,
+          reason: '',
           createdAt: Date.now(),
         },
         ...prev.transfers,
@@ -301,6 +304,42 @@ export default function App() {
     }));
   }
 
+  function applySpecialBonus(toPlayerId, reason) {
+    setState((prev) => {
+      const payers = prev.players.filter((player) => player.id !== toPlayerId);
+      if (payers.length === 0) return prev;
+
+      const now = Date.now();
+      const specialTransfers = payers.map((payer, index) => ({
+        id: generateId(),
+        from: payer.id,
+        to: toPlayerId,
+        amount: 5,
+        reason,
+        createdAt: now + index,
+      }));
+
+      return {
+        ...prev,
+        transfers: [...specialTransfers, ...prev.transfers],
+      };
+    });
+  }
+
+  function handleSpecialBonusClick(toPlayerId, reason) {
+    setSpecialConfirm({ toPlayerId, reason });
+  }
+
+  function closeSpecialConfirm() {
+    setSpecialConfirm(null);
+  }
+
+  function confirmSpecialBonus() {
+    if (!specialConfirm) return;
+    applySpecialBonus(specialConfirm.toPlayerId, specialConfirm.reason);
+    closeSpecialConfirm();
+  }
+
   function resetGame() {
     const nextState = createInitialState();
     setState(nextState);
@@ -308,6 +347,7 @@ export default function App() {
     setSelection({ from: null, to: null });
     setAmountInput('');
     setShowSettlement(false);
+    setSpecialConfirm(null);
   }
 
   return (
@@ -350,7 +390,7 @@ export default function App() {
                     type="button"
                     className="ghost small"
                     onClick={() => removePlayer(player.id)}
-                    disabled={state.players.length <= 3}
+                    disabled={state.players.length <= 2}
                   >
                     삭제
                   </button>
@@ -424,6 +464,42 @@ export default function App() {
             <button className="ghost small" onClick={resetGame}>초기화</button>
             <button className="small" onClick={() => setShowSettlement(true)}>정산</button>
           </div>
+          <aside className="special-actions card">
+            <h2>특수 점수</h2>
+            <p className="caption">클릭한 사람이 다른 사람 전원에게서 5점씩 받습니다.</p>
+
+            <div className="special-group">
+              <h3>첫뻑</h3>
+              <div className="special-button-grid">
+                {state.players.map((player) => (
+                  <button
+                    key={`first-bbeok-${player.id}`}
+                    type="button"
+                    className="ghost small"
+                    onClick={() => handleSpecialBonusClick(player.id, '첫뻑')}
+                  >
+                    {player.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="special-group">
+              <h3>첫따닥</h3>
+              <div className="special-button-grid">
+                {state.players.map((player) => (
+                  <button
+                    key={`first-ttadak-${player.id}`}
+                    type="button"
+                    className="ghost small"
+                    onClick={() => handleSpecialBonusClick(player.id, '첫따닥')}
+                  >
+                    {player.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </aside>
           <aside className="game-sidebar card">
             <h2>이동 내역</h2>
             <div className="history-list">
@@ -435,6 +511,7 @@ export default function App() {
                 return (
                   <div key={transfer.id} className="history-row">
                     <span className="history-row-main">
+                      {transfer.reason && <span className="history-tag">{transfer.reason}</span>}
                       <strong>{transfer.amount}</strong>
                       {from} → {to}
                     </span>
@@ -532,6 +609,23 @@ export default function App() {
                 <div className="settlement-actions">
                   <button className="ghost" onClick={() => setShowSettlement(false)}>닫기</button>
                   <button onClick={() => { resetGame(); }}>새 게임</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {specialConfirm && (
+            <div className="confirm-overlay" onClick={closeSpecialConfirm}>
+              <div className="confirm-modal card" onClick={(e) => e.stopPropagation()}>
+                <h3>특수 점수 확인</h3>
+                <p>
+                  <strong>{specialConfirm.reason}</strong> 처리 시{' '}
+                  <strong>{state.players.find((player) => player.id === specialConfirm.toPlayerId)?.name ?? '선택한 플레이어'}</strong>
+                  님이 다른 플레이어 전원에게서 5점씩 받습니다.
+                </p>
+                <div className="confirm-actions">
+                  <button className="ghost" onClick={closeSpecialConfirm}>취소</button>
+                  <button onClick={confirmSpecialBonus}>적용</button>
                 </div>
               </div>
             </div>

@@ -190,6 +190,31 @@ p {
   overflow: hidden;
 }
 
+.special-actions h2 {
+  margin-bottom: 8px;
+}
+
+.special-actions .caption {
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+
+.special-group + .special-group {
+  margin-top: 14px;
+}
+
+.special-group h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.special-button-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
 .game-sidebar h2 {
   flex-shrink: 0;
 }
@@ -467,6 +492,43 @@ p {
   padding: 20px;
 }
 
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.confirm-modal {
+  width: 100%;
+  max-width: 360px;
+  margin-bottom: 0;
+}
+
+.confirm-modal h3 {
+  margin: 0 0 10px;
+}
+
+.confirm-modal p {
+  margin: 0;
+  line-height: 1.5;
+  color: #374151;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.confirm-actions button {
+  flex: 1;
+}
+
 .settlement-modal {
   width: 100%;
   max-width: 440px;
@@ -636,10 +698,25 @@ p {
 
 .history-row-main {
   font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .history-row-main strong {
   margin-right: 6px;
+}
+
+.history-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .history-actions {
