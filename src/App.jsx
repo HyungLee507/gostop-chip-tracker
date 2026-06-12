@@ -282,6 +282,7 @@ export default function App() {
   const [specialConfirm, setSpecialConfirm] = useState(null);
   const [showSpecialPanel, setShowSpecialPanel] = useState(false);
   const [isGobakMode, setIsGobakMode] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   useEffect(() => {
     try {
@@ -589,6 +590,15 @@ export default function App() {
     setSpecialConfirm(null);
     setShowSpecialPanel(false);
     setIsGobakMode(false);
+    setShowResetConfirm(false);
+  }
+
+  function openResetConfirm() {
+    setShowResetConfirm(true);
+  }
+
+  function closeResetConfirm() {
+    setShowResetConfirm(false);
   }
 
   function activateGobakMode() {
@@ -607,7 +617,7 @@ export default function App() {
               <p className="eyebrow">고스톱 칩 트래커</p>
               <h1>게임 설정</h1>
             </div>
-            <button className="ghost small" onClick={resetGame}>초기화</button>
+            <button className="ghost small" onClick={openResetConfirm}>초기화</button>
           </header>
           <section className="card setup-chips">
             <h2>시작 칩</h2>
@@ -709,7 +719,7 @@ export default function App() {
           <div className="game-sidebar-col">
           <div className="game-actions">
             <button className="ghost small" onClick={returnToSetup}>설정으로</button>
-            <button className="ghost small" onClick={resetGame}>초기화</button>
+            <button className="ghost small" onClick={openResetConfirm}>초기화</button>
             <button className="small" onClick={() => setShowSettlement(true)}>정산</button>
             <button className="small" onClick={() => setShowWins(true)}>승리 횟수</button>
           </div>
@@ -902,7 +912,7 @@ export default function App() {
 
                 <div className="settlement-actions">
                   <button className="ghost" onClick={() => setShowSettlement(false)}>닫기</button>
-                  <button onClick={() => { resetGame(); }}>새 게임</button>
+                  <button onClick={openResetConfirm}>새 게임</button>
                 </div>
               </div>
             </div>
@@ -964,6 +974,21 @@ export default function App() {
             </div>
           )}
         </>
+      )}
+      {showResetConfirm && (
+        <div className="confirm-overlay" onClick={closeResetConfirm}>
+          <div className="confirm-modal card" onClick={(e) => e.stopPropagation()}>
+            <h3>초기화 확인</h3>
+            <p>현재 플레이어, 칩, 이동 내역을 모두 지우고 처음 상태로 되돌립니다.</p>
+            <p className="confirm-summary">
+              이 작업은 되돌릴 수 없습니다.
+            </p>
+            <div className="confirm-actions">
+              <button className="ghost" onClick={closeResetConfirm}>취소</button>
+              <button onClick={resetGame}>초기화</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
