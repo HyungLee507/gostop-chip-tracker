@@ -17,6 +17,7 @@ function createInitialState() {
     chipValue: 0,
     transfers: [],
     bbeokStages: {},
+    bbeokCounts: {},
     winCounts: {},
     receiveCounts: {},
     winDeleteCounts: {},
@@ -170,6 +171,7 @@ function loadInitialState() {
       chipValue: Number(parsed.chipValue) >= 0 ? Number(parsed.chipValue) : 0,
       transfers,
       bbeokStages: normalizeBbeokStages(parsed.bbeokStages, players),
+      bbeokCounts: normalizeCountMap(parsed.bbeokCounts, players),
       winCounts,
       receiveCounts,
       winDeleteCounts: normalizeCountMap(parsed.winDeleteCounts, players),
@@ -409,6 +411,9 @@ export default function App() {
         bbeokStages: Object.fromEntries(
           Object.entries(prev.bbeokStages).filter(([playerId]) => playerId !== id)
         ),
+        bbeokCounts: Object.fromEntries(
+          Object.entries(prev.bbeokCounts).filter(([playerId]) => playerId !== id)
+        ),
         winCounts,
         receiveCounts,
         winDeleteCounts: Object.fromEntries(
@@ -571,6 +576,12 @@ export default function App() {
         ...prev,
         transfers,
         bbeokStages: nextBbeokStages,
+        bbeokCounts: specialConfirm.type === 'bbeok'
+          ? {
+              ...prev.bbeokCounts,
+              [specialConfirm.toPlayerId]: (prev.bbeokCounts[specialConfirm.toPlayerId] ?? 0) + 1,
+            }
+          : prev.bbeokCounts,
         winCounts,
         receiveCounts,
       };
@@ -606,6 +617,16 @@ export default function App() {
     setIsGobakMode(true);
     setSelection({ from: null, to: null });
     setAmountInput('');
+  }
+
+  function updateBbeokCount(playerId, delta) {
+    setState((prev) => ({
+      ...prev,
+      bbeokCounts: {
+        ...prev.bbeokCounts,
+        [playerId]: Math.max(0, (prev.bbeokCounts[playerId] ?? 0) + delta),
+      },
+    }));
   }
 
   return (
@@ -682,9 +703,11 @@ export default function App() {
                   <div className="numpad-display-center">{amountInput || '0'}</div>
                 ) : (
                   <p className="transfer-guide">
-                    {!selection.from
-                      ? isGobakMode ? '보내는 사람을 선택하세요(고박)' : '보내는 사람을 선택하세요'
-                      : isGobakMode ? '받는 사람을 선택하세요(고박)' : '받는 사람을 선택하세요'}
+                    <span>
+                      {!selection.from
+                        ? isGobakMode ? '보내는 사람을 선택하세요(고박)' : '보내는 사람을 선택하세요'
+                        : isGobakMode ? '받는 사람을 선택하세요(고박)' : '받는 사람을 선택하세요'}
+                    </span>
                   </p>
                 )}
               </div>
@@ -810,6 +833,43 @@ export default function App() {
 
               <div className="special-section">
                 <div className="special-event-header">
+                  <h3>뻑 횟수</h3>
+                  <span className="special-event-amount">직접 조정</span>
+                </div>
+                <div className="bbeok-count-list">
+                  {state.players.map((player) => {
+                    const count = state.bbeokCounts[player.id] ?? 0;
+
+                    return (
+                      <div key={`bbeok-count-${player.id}`} className="bbeok-count-row">
+                        <span className="bbeok-count-name">{player.name}</span>
+                        <div className="bbeok-count-controls">
+                          <button
+                            type="button"
+                            className="ghost small bbeok-count-button"
+                            onClick={() => updateBbeokCount(player.id, -1)}
+                            disabled={count <= 0}
+                          >
+                            -
+                          </button>
+                          <strong>{count}회</strong>
+                          <button
+                            type="button"
+                            className="ghost small bbeok-count-button"
+                            onClick={() => updateBbeokCount(player.id, 1)}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="special-hint">첫뻑 진행을 적용하면 이 횟수도 자동으로 올라갑니다.</p>
+              </div>
+
+              <div className="special-section">
+                <div className="special-event-header">
                   <h3>첫따닥</h3>
                   <span className="special-event-amount">인당 5점</span>
                 </div>
@@ -931,7 +991,7 @@ export default function App() {
                         <span className="settlement-rank-name">{player.name}</span>
                         <span className="settlement-diff positive">+{state.winCounts[player.id] ?? 0}승</span>
                         <span className="settlement-money">
-                          진행 {state.receiveCounts[player.id] ?? 0}/{state.players.length - 1}
+                          진행 {state.receiveCounts[player.id] ?? 0}/{state.players.length - 1} · 뻑 {state.bbeokCounts[player.id] ?? 0}회
                         </span>
                       </div>
                     ))}

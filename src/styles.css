@@ -243,6 +243,45 @@ p {
   gap: 8px;
 }
 
+.bbeok-count-list {
+  display: grid;
+  gap: 8px;
+}
+
+.bbeok-count-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.bbeok-count-name {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  overflow-wrap: anywhere;
+}
+
+.bbeok-count-controls {
+  display: grid;
+  grid-template-columns: 34px 52px 34px;
+  align-items: center;
+  gap: 6px;
+}
+
+.bbeok-count-controls strong {
+  text-align: center;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.bbeok-count-button {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+}
+
 .special-stage-button {
   transition: background 0.15s ease, color 0.15s ease;
 }
@@ -510,6 +549,9 @@ p {
   font-size: 15px;
   margin: 0;
   color: #6b7280;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
 }
 
 .transfer-input-row {
@@ -713,6 +755,7 @@ p {
 .settlement-money {
   font-weight: 400;
   color: #6b7280;
+  text-align: right;
 }
 
 .settlement-list {
@@ -949,6 +992,14 @@ p {
 
   .history-actions {
     justify-items: start;
+  }
+
+  .settlement-rank-row {
+    grid-template-columns: 28px 1fr auto;
+  }
+
+  .settlement-money {
+    grid-column: 2 / -1;
   }
 
   .table-view {
