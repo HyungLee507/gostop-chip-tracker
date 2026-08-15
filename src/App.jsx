@@ -17,10 +17,12 @@ function createInitialState() {
     chipValue: 0,
     transfers: [],
     bbeokStages: {},
+    bbeokCounts: {},
     winCounts: {},
     receiveCounts: {},
     winDeleteCounts: {},
     tripleWinDeleteCounts: {},
+    isDoubleRound: false,
     isStarted: false,
   };
 }
@@ -170,15 +172,27 @@ function loadInitialState() {
       chipValue: Number(parsed.chipValue) >= 0 ? Number(parsed.chipValue) : 0,
       transfers,
       bbeokStages: normalizeBbeokStages(parsed.bbeokStages, players),
+      bbeokCounts: normalizeCountMap(parsed.bbeokCounts, players),
       winCounts,
       receiveCounts,
       winDeleteCounts: normalizeCountMap(parsed.winDeleteCounts, players),
       tripleWinDeleteCounts: normalizeCountMap(parsed.tripleWinDeleteCounts, players),
+      isDoubleRound: Boolean(parsed.isDoubleRound),
       isStarted: Boolean(parsed.isStarted),
     };
   } catch {
     return createInitialState();
   }
+}
+
+function getRoundMultiplier(state) {
+  return state.isDoubleRound ? 2 : 1;
+}
+
+function getSpecialBaseAmount(confirm) {
+  if (!confirm) return 0;
+  const endBonus = confirm.type === 'bbeok' && confirm.event.stage === 2 ? 5 : 0;
+  return confirm.event.amount + endBonus;
 }
 
 function calculateSettlements(players, balances, initialChips) {
@@ -312,6 +326,7 @@ export default function App() {
     ? parsedInitialChipsInput
     : state.initialChips;
   const totalChips = state.players.length * (state.isStarted ? state.initialChips : setupInitialChips);
+  const roundMultiplier = getRoundMultiplier(state);
 
   const ranking = useMemo(() => {
     return [...state.players].sort((a, b) => balances[b.id] - balances[a.id]);
@@ -409,6 +424,9 @@ export default function App() {
         bbeokStages: Object.fromEntries(
           Object.entries(prev.bbeokStages).filter(([playerId]) => playerId !== id)
         ),
+        bbeokCounts: Object.fromEntries(
+          Object.entries(prev.bbeokCounts).filter(([playerId]) => playerId !== id)
+        ),
         winCounts,
         receiveCounts,
         winDeleteCounts: Object.fromEntries(
@@ -440,11 +458,12 @@ export default function App() {
     if (!Number.isInteger(amount) || amount <= 0) return;
 
     setState((prev) => {
+      const multiplier = getRoundMultiplier(prev);
       const newTransfer = {
         id: generateId(),
         from: selection.from,
         to: selection.to,
-        amount,
+        amount: amount * multiplier,
         reason: isGobakMode ? '고박' : '',
         createdAt: Date.now(),
       };
@@ -458,6 +477,7 @@ export default function App() {
         bbeokStages: {},
         winCounts,
         receiveCounts,
+        isDoubleRound: false,
       };
     });
 
@@ -528,11 +548,12 @@ export default function App() {
       if (payers.length === 0) return prev;
 
       const now = Date.now();
+      const multiplier = getRoundMultiplier(prev);
       const specialTransfers = payers.map((payer, index) => ({
         id: generateId(),
         from: payer.id,
         to: specialConfirm.toPlayerId,
-        amount: specialConfirm.event.amount,
+        amount: specialConfirm.event.amount * multiplier,
         reason: specialConfirm.event.label,
         createdAt: now + index,
       }));
@@ -544,7 +565,7 @@ export default function App() {
           id: generateId(),
           from: payer.id,
           to: specialConfirm.toPlayerId,
-          amount: 5,
+          amount: 5 * multiplier,
           reason: '삼연뻑 종료 승리',
           createdAt: now + payers.length + index,
         }));
@@ -571,8 +592,15 @@ export default function App() {
         ...prev,
         transfers,
         bbeokStages: nextBbeokStages,
+        bbeokCounts: specialConfirm.type === 'bbeok'
+          ? {
+              ...prev.bbeokCounts,
+              [specialConfirm.toPlayerId]: (prev.bbeokCounts[specialConfirm.toPlayerId] ?? 0) + 1,
+            }
+          : prev.bbeokCounts,
         winCounts,
         receiveCounts,
+        isDoubleRound: false,
       };
     });
 
@@ -606,6 +634,23 @@ export default function App() {
     setIsGobakMode(true);
     setSelection({ from: null, to: null });
     setAmountInput('');
+  }
+
+  function updateBbeokCount(playerId, delta) {
+    setState((prev) => ({
+      ...prev,
+      bbeokCounts: {
+        ...prev.bbeokCounts,
+        [playerId]: Math.max(0, (prev.bbeokCounts[playerId] ?? 0) + delta),
+      },
+    }));
+  }
+
+  function toggleDoubleRound() {
+    setState((prev) => ({
+      ...prev,
+      isDoubleRound: !prev.isDoubleRound,
+    }));
   }
 
   return (
@@ -682,9 +727,12 @@ export default function App() {
                   <div className="numpad-display-center">{amountInput || '0'}</div>
                 ) : (
                   <p className="transfer-guide">
-                    {!selection.from
-                      ? isGobakMode ? '보내는 사람을 선택하세요(고박)' : '보내는 사람을 선택하세요'
-                      : isGobakMode ? '받는 사람을 선택하세요(고박)' : '받는 사람을 선택하세요'}
+                    {state.isDoubleRound && <span className="double-round-badge">2배판</span>}
+                    <span>
+                      {!selection.from
+                        ? isGobakMode ? '보내는 사람을 선택하세요(고박)' : '보내는 사람을 선택하세요'
+                        : isGobakMode ? '받는 사람을 선택하세요(고박)' : '받는 사람을 선택하세요'}
+                    </span>
                   </p>
                 )}
               </div>
@@ -722,6 +770,12 @@ export default function App() {
             <button className="ghost small" onClick={openResetConfirm}>초기화</button>
             <button className="small" onClick={() => setShowSettlement(true)}>정산</button>
             <button className="small" onClick={() => setShowWins(true)}>승리 횟수</button>
+            <button
+              className={state.isDoubleRound ? 'small double-round-active' : 'ghost small'}
+              onClick={toggleDoubleRound}
+            >
+              {state.isDoubleRound ? '2배판 ON' : '2배판 OFF'}
+            </button>
           </div>
           <aside className="game-sidebar card">
             <h2>이동 내역</h2>
@@ -767,8 +821,24 @@ export default function App() {
 
               <div className="special-section">
                 <div className="special-event-header">
+                  <h3>판 배율</h3>
+                  <span className="special-event-amount">{roundMultiplier}배 적용</span>
+                </div>
+                <button
+                  type="button"
+                  className={state.isDoubleRound ? 'small double-round-active' : 'ghost small'}
+                  style={{ width: '100%' }}
+                  onClick={toggleDoubleRound}
+                >
+                  {state.isDoubleRound ? '2배판 끄기' : '2배판 켜기'}
+                </button>
+                <p className="special-hint">켜져 있는 동안 기록되는 일반 점수, 고박, 뻑, 첫따닥 점수가 2배로 들어가고 기록 후 정상판으로 돌아갑니다.</p>
+              </div>
+
+              <div className="special-section">
+                <div className="special-event-header">
                   <h3>고박</h3>
-                  <span className="special-event-amount">승수 +1</span>
+                  <span className="special-event-amount">승수 +1 · 점수 {roundMultiplier}배</span>
                 </div>
                 <button
                   type="button"
@@ -783,7 +853,9 @@ export default function App() {
               <div className="special-section">
                 <div className="special-event-header">
                   <h3>첫뻑 진행</h3>
-                  <span className="special-event-amount">5 → 10 → 20점</span>
+                  <span className="special-event-amount">
+                    {[5, 10, 20].map((amount) => amount * roundMultiplier).join(' → ')}점
+                  </span>
                 </div>
                 <div className="special-button-grid">
                   {state.players.map((player) => {
@@ -810,8 +882,45 @@ export default function App() {
 
               <div className="special-section">
                 <div className="special-event-header">
+                  <h3>뻑 횟수</h3>
+                  <span className="special-event-amount">직접 조정</span>
+                </div>
+                <div className="bbeok-count-list">
+                  {state.players.map((player) => {
+                    const count = state.bbeokCounts[player.id] ?? 0;
+
+                    return (
+                      <div key={`bbeok-count-${player.id}`} className="bbeok-count-row">
+                        <span className="bbeok-count-name">{player.name}</span>
+                        <div className="bbeok-count-controls">
+                          <button
+                            type="button"
+                            className="ghost small bbeok-count-button"
+                            onClick={() => updateBbeokCount(player.id, -1)}
+                            disabled={count <= 0}
+                          >
+                            -
+                          </button>
+                          <strong>{count}회</strong>
+                          <button
+                            type="button"
+                            className="ghost small bbeok-count-button"
+                            onClick={() => updateBbeokCount(player.id, 1)}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="special-hint">첫뻑 진행을 적용하면 이 횟수도 자동으로 올라갑니다.</p>
+              </div>
+
+              <div className="special-section">
+                <div className="special-event-header">
                   <h3>첫따닥</h3>
-                  <span className="special-event-amount">인당 5점</span>
+                  <span className="special-event-amount">인당 {5 * roundMultiplier}점</span>
                 </div>
                 <div className="special-button-grid">
                   {state.players.map((player) => (
@@ -838,7 +947,11 @@ export default function App() {
                   <span>{state.players.find(p => p.id === selection.from)?.name} → {state.players.find(p => p.id === selection.to)?.name}</span>
                   <button className="ghost small" onClick={() => { setSelection({ from: null, to: null }); setAmountInput(''); }}>취소</button>
                 </div>
-                <div className="numpad-display">{amountInput || '0'}</div>
+                <div className="numpad-display">
+                  {roundMultiplier > 1 && amountInput
+                    ? `${amountInput} × ${roundMultiplier} = ${Number(amountInput) * roundMultiplier}`
+                    : amountInput || '0'}
+                </div>
                 <div className="numpad-grid">
                   {[1,2,3,4,5,6,7,8,9].map((n) => (
                     <button key={n} className="numpad-key" onClick={() => setAmountInput((prev) => prev + String(n))}>{n}</button>
@@ -931,7 +1044,7 @@ export default function App() {
                         <span className="settlement-rank-name">{player.name}</span>
                         <span className="settlement-diff positive">+{state.winCounts[player.id] ?? 0}승</span>
                         <span className="settlement-money">
-                          진행 {state.receiveCounts[player.id] ?? 0}/{state.players.length - 1}
+                          진행 {state.receiveCounts[player.id] ?? 0}/{state.players.length - 1} · 뻑 {state.bbeokCounts[player.id] ?? 0}회
                         </span>
                       </div>
                     ))}
@@ -952,18 +1065,17 @@ export default function App() {
                   <strong>{specialConfirm.event.label}</strong> 처리 시{' '}
                   <strong>{state.players.find((player) => player.id === specialConfirm.toPlayerId)?.name ?? '선택한 플레이어'}</strong>
                   님이 다른 플레이어 전원에게서{' '}
-                  {specialConfirm.type === 'bbeok' && specialConfirm.event.stage === 2
-                    ? `${specialConfirm.event.amount + 5}점(20점 + 종료 5점)`
-                    : `${specialConfirm.event.amount}점`}씩 받습니다.
+                  {getSpecialBaseAmount(specialConfirm) * roundMultiplier}점씩 받습니다.
                 </p>
+                {roundMultiplier > 1 && (
+                  <p className="confirm-summary">
+                    2배판 적용: 기본 {getSpecialBaseAmount(specialConfirm)}점 × {roundMultiplier}
+                  </p>
+                )}
                 <p className="confirm-summary">
                   총 획득 점수:{' '}
                   <strong>
-                    {(state.players.length - 1) * (
-                      specialConfirm.type === 'bbeok' && specialConfirm.event.stage === 2
-                        ? specialConfirm.event.amount + 5
-                        : specialConfirm.event.amount
-                    )}점
+                    {(state.players.length - 1) * getSpecialBaseAmount(specialConfirm) * roundMultiplier}점
                   </strong>
                 </p>
                 <div className="confirm-actions">
