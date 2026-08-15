@@ -237,6 +237,10 @@ p {
   color: #5b21b6;
 }
 
+.double-round-active {
+  background: #b91c1c;
+}
+
 .special-button-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -552,6 +556,17 @@ p {
   display: grid;
   justify-items: center;
   gap: 6px;
+}
+
+.double-round-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .transfer-input-row {
