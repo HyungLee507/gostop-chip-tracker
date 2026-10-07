@@ -9,6 +9,7 @@ const STORAGE_KEY = 'gostop-chip-tracker-v1';
 const DEFAULT_PLAYERS = ['플레이어 1', '플레이어 2', '플레이어 3', '플레이어 4'];
 const DEFAULT_CHIPS = 0;
 const FIRST_TTADAK_EVENT = { key: 'first-ttadak', label: '첫따닥', amount: 5 };
+const CHONGTONG_EVENT = { key: 'chongtong', label: '총통', amount: 5 };
 
 function createInitialState() {
   return {
@@ -536,6 +537,10 @@ export default function App() {
     setSpecialConfirm({ toPlayerId, event: FIRST_TTADAK_EVENT, type: 'ttadak' });
   }
 
+  function handleChongtongClick(toPlayerId) {
+    setSpecialConfirm({ toPlayerId, event: CHONGTONG_EVENT, type: 'chongtong' });
+  }
+
   function closeSpecialConfirm() {
     setSpecialConfirm(null);
   }
@@ -929,6 +934,25 @@ export default function App() {
                       type="button"
                       className="ghost small"
                       onClick={() => handleTtadakClick(player.id)}
+                    >
+                      {player.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="special-section">
+                <div className="special-event-header">
+                  <h3>총통</h3>
+                  <span className="special-event-amount">인당 {5 * roundMultiplier}점</span>
+                </div>
+                <div className="special-button-grid">
+                  {state.players.map((player) => (
+                    <button
+                      key={`chongtong-${player.id}`}
+                      type="button"
+                      className="ghost small"
+                      onClick={() => handleChongtongClick(player.id)}
                     >
                       {player.name}
                     </button>
