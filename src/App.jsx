@@ -478,7 +478,6 @@ export default function App() {
         bbeokStages: {},
         winCounts,
         receiveCounts,
-        isDoubleRound: false,
       };
     });
 
@@ -605,7 +604,6 @@ export default function App() {
           : prev.bbeokCounts,
         winCounts,
         receiveCounts,
-        isDoubleRound: false,
       };
     });
 
